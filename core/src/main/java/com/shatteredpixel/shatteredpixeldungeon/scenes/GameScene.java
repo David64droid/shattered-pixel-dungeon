@@ -25,6 +25,8 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
+import com.shatteredpixel.shatteredpixeldungeon.Coop;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.Rankings;
@@ -173,6 +175,7 @@ public class GameScene extends PixelScene {
 	private ArrayList<Tilemap> customTilemaps = new ArrayList<>();
 	private FogOfWar fog;
 	private HeroSprite hero;
+	private HeroSprite partnerSprite; //modo 2 jugadores
 
 	private MenuPane menu;
 	private StatusPane status;
@@ -323,6 +326,14 @@ public class GameScene extends PixelScene {
 		hero.place( Dungeon.hero.pos );
 		hero.updateArmor();
 		mobs.add( hero );
+
+		//modo 2 jugadores: sprite del otro heroe
+		if (Coop.partner != null) {
+			partnerSprite = new HeroSprite( Coop.partner );
+			partnerSprite.place( Coop.partner.pos );
+			partnerSprite.updateArmor();
+			mobs.add( partnerSprite );
+		}
 		
 		for (Mob mob : Dungeon.level.mobs) {
 			addMobSprite( mob );
@@ -794,6 +805,66 @@ public class GameScene extends PixelScene {
 			}
 		}
 
+		//modo 2 jugadores: al empezar una partida nueva se ofrece anadir un segundo jugador
+		if (Coop.partner == null && Dungeon.depth == 1 && Dungeon.branch == 0
+				&& Statistics.duration == 0 && Dungeon.hero.isAlive()) {
+			showSecondPlayerPrompt();
+		}
+
+	}
+
+	private void showSecondPlayerPrompt() {
+		final HeroClass[] classes = HeroClass.values();
+		String[] options = new String[classes.length + 1];
+		for (int i = 0; i < classes.length; i++) {
+			options[i] = classes[i].title();
+		}
+		options[classes.length] = Coop.tr("Jugar solo", "Play solo");
+
+		addToFront(new WndOptions(
+				Coop.tr("Segundo jugador", "Second player"),
+				Coop.tr("Elige la clase del jugador 2. Jugareis por turnos en el mismo dispositivo.",
+						"Choose player 2's class. You will take turns on this device."),
+				options) {
+			@Override
+			protected void onSelect(int index) {
+				if (index >= 0 && index < classes.length) {
+					Coop.createPartner(classes[index]);
+					GameScene.heroSwapped();
+				}
+			}
+
+			@Override
+			public void onBackPressed() {
+				//hay que elegir una opcion
+			}
+		});
+	}
+
+	//modo 2 jugadores: crea el sprite del companero en la escena actual
+	public static void addPartnerSprite( Hero h ) {
+		if (scene == null) return;
+		scene.partnerSprite = new HeroSprite( h );
+		scene.partnerSprite.place( h.pos );
+		scene.partnerSprite.updateArmor();
+		scene.mobs.add( scene.partnerSprite );
+	}
+
+	//modo 2 jugadores: refresca toda la interfaz cuando cambia el heroe activo
+	public static void heroSwapped() {
+		if (scene == null || Dungeon.hero == null) return;
+
+		com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator.swapHero( Dungeon.hero );
+		if (scene.status != null) scene.status.heroChanged();
+		QuickSlotButton.refresh();
+		InventoryPane.refresh();
+		ActionIndicator.refresh();
+		AttackIndicator.updateState();
+
+		if (Dungeon.hero.sprite != null) {
+			Camera.main.panTo( Dungeon.hero.sprite.center(), 3f );
+		}
+		if (Coop.active()) Coop.announceTurn();
 	}
 	
 	public void destroy() {
