@@ -24,6 +24,7 @@ package com.shatteredpixel.shatteredpixeldungeon.actors.hero;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
+import com.shatteredpixel.shatteredpixeldungeon.Coop;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
@@ -833,8 +834,33 @@ public class Hero extends Char {
 		next();
 	}
 	
+	//--- Modo 2 jugadores -------------------------------------------------------
+
+	//el heroe activo tiene prioridad ligeramente menor, asi que si dos heroes coinciden en el
+	//mismo instante, siempre actua primero el que NO acaba de jugar (turnos alternos)
+	public void setCoopActive( boolean active ) {
+		actPriority = active ? HERO_PRIO - 1 : HERO_PRIO;
+	}
+
+	//true si este heroe esta en mitad de una accion de varios pasos (viaje o descanso largo),
+	//en cuyo caso el companero espera para no cambiar de jugador en cada paso
+	public boolean coopMidAction() {
+		if (resting) return true;
+		return curAction instanceof HeroAction.Move && curAction.dst != pos;
+	}
+
 	@Override
 	public boolean act() {
+
+		if (Coop.partner == this) {
+			//este es el heroe que NO esta siendo controlado, y le toca moverse
+			Hero active = Dungeon.hero;
+			if (paralysed > 0 || (active != null && active.isAlive() && active.coopMidAction())) {
+				spendConstant( TICK );
+				return true;
+			}
+			Coop.swapControl();
+		}
 		
 		//calls to dungeon.observe will also update hero's local FOV.
 		fieldOfView = Dungeon.level.heroFOV;
@@ -2235,6 +2261,12 @@ public class Hero extends Char {
 		
 		Actor.fixTime();
 		super.die( cause );
+
+		//modo 2 jugadores: si el otro sigue vivo, la partida continua
+		if (Coop.onHeroDeath( this )) {
+			return;
+		}
+
 		reallyDie( cause );
 	}
 	
