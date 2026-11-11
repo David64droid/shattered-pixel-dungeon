@@ -24,6 +24,7 @@ package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Coop;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -393,7 +394,7 @@ public abstract class Mob extends Char {
 		if ( enemy == null || !enemy.isAlive() || !Actor.chars().contains(enemy) || state == WANDERING) {
 			newEnemy = true;
 		//We are amoked and current enemy is the hero
-		} else if (buff( Amok.class ) != null && enemy == Dungeon.hero) {
+		} else if (buff( Amok.class ) != null && enemy instanceof Hero) {
 			newEnemy = true;
 		//We are charmed and current enemy is what charmed us
 		} else if (buff(Charm.class) != null && buff(Charm.class).object == enemy.id()) {
@@ -434,8 +435,10 @@ public abstract class Mob extends Char {
 					
 					if (enemies.isEmpty()) {
 						//try to find the hero third
-						if (fieldOfView[Dungeon.hero.pos] && Dungeon.hero.invisible <= 0) {
-							enemies.add(Dungeon.hero);
+						for (Hero h : Coop.heroes()) {
+							if (fieldOfView[h.pos] && h.invisible <= 0) {
+								enemies.add(h);
+							}
 						}
 					}
 				}
@@ -460,9 +463,11 @@ public abstract class Mob extends Char {
 					if (mob.alignment == Alignment.ALLY && fieldOfView[mob.pos] && mob.invisible <= 0)
 						enemies.add(mob);
 
-				//and look for the hero
-				if (fieldOfView[Dungeon.hero.pos] && Dungeon.hero.invisible <= 0) {
-					enemies.add(Dungeon.hero);
+				//and look for the heroes (hay dos en modo 2 jugadores)
+				for (Hero h : Coop.heroes()) {
+					if (fieldOfView[h.pos] && h.invisible <= 0) {
+						enemies.add(h);
+					}
 				}
 				
 			}
@@ -501,13 +506,13 @@ public abstract class Mob extends Char {
 					} else if ((canAttack(curr) && !canAttack(closest))
 							|| (currDist < closestDist)){
 						closest = curr;
-					} else if ( curr == Dungeon.hero &&
+					} else if ( curr instanceof Hero &&
 							(currDist == closestDist) || (canAttack(curr) && canAttack(closest))){
 						closest = curr;
 					}
 				}
 				//if we were going to target the hero, but an afterimage exists, target that instead
-				if (closest == Dungeon.hero){
+				if (closest instanceof Hero){
 					for (Char ch : enemies){
 						if (ch instanceof Feint.AfterImage){
 							closest = ch;
@@ -999,6 +1004,15 @@ public abstract class Mob extends Char {
 					Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(exp), FloatingText.EXPERIENCE);
 				}
 				Dungeon.hero.earnExp(exp, getClass());
+
+				//modo 2 jugadores: el companero tambien recibe experiencia
+				if (Coop.isPartnerAlive()) {
+					int partnerExp = Coop.partner.lvl <= maxLvl ? EXP : 0;
+					if (partnerExp > 0 && Coop.partner.sprite != null) {
+						Coop.partner.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(partnerExp), FloatingText.EXPERIENCE);
+					}
+					Coop.partner.earnExp(partnerExp, getClass());
+				}
 				//in the vault level we manually progress ring IDing. 5 enemies defeated to an ID
 				if (exp == 0 && Dungeon.level instanceof VaultLevel){
 					Item ring = Dungeon.hero.belongings.ring();
