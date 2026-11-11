@@ -403,6 +403,14 @@ public class BuffIndicator extends Component {
 		}
 	}
 	
+	//modo 2 jugadores: el indicador de la barra de estado pasa a mostrar los buffs del heroe activo
+	public static void swapHero( Char newHero ) {
+		if (heroInstance != null) {
+			heroInstance.ch = newHero;
+			heroInstance.needsRefresh = true;
+		}
+	}
+
 	public static void refreshHero() {
 		if (heroInstance != null) {
 			heroInstance.needsRefresh = true;

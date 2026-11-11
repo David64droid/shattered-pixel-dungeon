@@ -388,6 +388,13 @@ public class StatusPane extends Component {
 		counter.setSweep((1f - Actor.now()%1f)%1f);
 	}
 
+	//modo 2 jugadores: se llama al cambiar el heroe activo para refrescar retrato y nivel
+	public void heroChanged(){
+		lastTier = Dungeon.hero.tier();
+		lastLvl = -1; //-1 evita la animacion de "subida de nivel"
+		avatar.copy( HeroSprite.avatar( Dungeon.hero ) );
+	}
+
 	public void updateAvatar(){
 		avatar.copy( HeroSprite.avatar( Dungeon.hero ) );
 	}
