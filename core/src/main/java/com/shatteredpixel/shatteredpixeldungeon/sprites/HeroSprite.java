@@ -49,13 +49,22 @@ public class HeroSprite extends CharSprite {
 	private Animation fly;
 	private Animation read;
 
+	//heroe al que pertenece este sprite (en modo 2 jugadores hay dos sprites de heroe)
+	private Hero owner;
+
 	public HeroSprite() {
+		this( Dungeon.hero );
+	}
+
+	public HeroSprite( Hero hero ) {
 		super();
+
+		owner = hero;
 		
-		texture( Dungeon.hero.heroClass.spritesheet() );
+		texture( hero.heroClass.spritesheet() );
 		updateArmor();
 		
-		link( Dungeon.hero );
+		link( hero );
 
 		if (ch.isAlive())
 			idle();
@@ -70,7 +79,7 @@ public class HeroSprite extends CharSprite {
 	
 	public void updateArmor() {
 
-		TextureFilm film = new TextureFilm( tiers(), Dungeon.hero.tier(), FRAME_WIDTH, FRAME_HEIGHT );
+		TextureFilm film = new TextureFilm( tiers(), (owner != null ? owner : Dungeon.hero).tier(), FRAME_WIDTH, FRAME_HEIGHT );
 		
 		idle = new Animation( 1, true );
 		idle.frames( film, 0, 0, 0, 1, 0, 0, 1, 1 );
@@ -95,7 +104,7 @@ public class HeroSprite extends CharSprite {
 		read = new Animation( 20, false );
 		read.frames( film, 19, 20, 20, 20, 20, 20, 20, 20, 20, 19 );
 		
-		if (Dungeon.hero.isAlive())
+		if ((owner != null ? owner : Dungeon.hero).isAlive())
 			idle();
 		else
 			die();
@@ -104,7 +113,8 @@ public class HeroSprite extends CharSprite {
 	@Override
 	public void place( int p ) {
 		super.place( p );
-		if (Game.scene() instanceof GameScene) Camera.main.panFollow(this, 5f);
+		//en modo 2 jugadores, la camara solo sigue al heroe activo
+		if (Game.scene() instanceof GameScene && (ch == null || ch == Dungeon.hero)) Camera.main.panFollow(this, 5f);
 	}
 
 	@Override
@@ -113,7 +123,7 @@ public class HeroSprite extends CharSprite {
 		if (ch != null && ch.flying) {
 			play( fly );
 		}
-		Camera.main.panFollow(this, 20f);
+		if (ch == null || ch == Dungeon.hero) Camera.main.panFollow(this, 20f);
 	}
 
 	@Override
@@ -128,7 +138,7 @@ public class HeroSprite extends CharSprite {
 	public void jump( int from, int to, float height, float duration,  Callback callback ) {
 		super.jump( from, to, height, duration, callback );
 		play( fly );
-		Camera.main.panFollow(this, 20f);
+		if (ch == null || ch == Dungeon.hero) Camera.main.panFollow(this, 20f);
 	}
 
 	public synchronized void read() {
