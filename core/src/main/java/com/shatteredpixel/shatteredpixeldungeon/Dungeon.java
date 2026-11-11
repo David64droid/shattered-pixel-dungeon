@@ -278,6 +278,8 @@ public class Dungeon {
 		Blacksmith.Quest.reset();
 		Imp.Quest.reset();
 
+		Coop.reset();
+
 		hero = new Hero();
 		hero.live();
 		
@@ -502,6 +504,9 @@ public class Dungeon {
 			}
 		}
 		
+		//modo 2 jugadores: el grupo viaja junto, el companero aparece al lado
+		Coop.onLevelSwitch( pos );
+
 		Light light = hero.buff( Light.class );
 		hero.viewDistance = light == null ? level.viewDistance : Math.max( Light.DISTANCE, level.viewDistance );
 		
@@ -635,6 +640,7 @@ public class Dungeon {
 			bundle.put( CHALLENGES, challenges );
 			bundle.put( MOBS_TO_CHAMPION, mobsToChampion );
 			bundle.put( HERO, hero );
+			Coop.store( bundle );
 			bundle.put( DEPTH, depth );
 			bundle.put( BRANCH, branch );
 
@@ -811,6 +817,7 @@ public class Dungeon {
 		
 		hero = null;
 		hero = (Hero)bundle.get( HERO );
+		Coop.restore( bundle );
 		
 		depth = bundle.getInt( DEPTH );
 		branch = bundle.getInt( BRANCH );
